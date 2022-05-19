@@ -197,6 +197,247 @@ Shell本身的文件名
 
 ------
 
+#### 4..(点命令)和source
+
+都是用来执行脚本，区别在于：
+（1）. 来执行shell是在一个子shell里运行的，所以执行后，结果并没有反应到父shell里
+（2）source是在本shell中执行的
+
+------
+
+#### 5.测试端口是否开放
+
+需要开放端口的机子上执行：
+
+~~~shell
+nc -l <port>
+~~~
+
+在另外的机子上执行
+
+~~~shell
+nc -vz <ip> <port>
+~~~
+
+------
+
+#### 6.apt命令相关
+
+~~~shell
+#更新系统包缓存
+sudo apt-get update
+#查看jdk8存在的版本
+apt-cache madison openjdk-8-jdk
+
+root@0001:/usr/lib/jvm/java-8-openjdk-amd64# apt-cache madison openjdk-8-jdk
+openjdk-8-jdk | 8u212-b03-0ubuntu1.16.04.1 | http://cn.archive.ubuntu.com/ubuntu xenial-updates/main amd64 Packages
+openjdk-8-jdk | 8u212-b03-0ubuntu1.16.04.1 | http://security.ubuntu.com/ubuntu xenial-security/main amd64 Packages
+openjdk-8-jdk | 8u77-b03-3ubuntu3 | http://cn.archive.ubuntu.com/ubuntu xenial/main amd64 Packages
+ 
+#根据版本号下载软件包
+sudo apt-get install openjdk-8-jdk=8u212-b03-0ubuntu1.16.04.1
+#查看apt工具已经安装的包
+apt list --installed
+~~~
+
+```
+#sources.list的位置
+/etc/apt/sources.list
+
+#apt 下载的deb文件位置
+/var/cache/apt/archives
+```
+
+制作ubuntu 离线安装包：
+
+- 联网环境的主机
+- apt工具已经安装
+- dpkg-dev工具已经安装
+
+以制作linux-libc-dev_5.4.0-96.109的离线安装包为例
+
+1.下载对应的包
+
+~~~shell
+root@ubuntu:~/package# apt install linux-libc-dev
+~~~
+
+2.到/var/cache/apt/archives目录下获取deb文件，我将其存放在/home/casa/package/linux-libc-dev_5.4.0-96.109目录下
+
+~~~shell
+#创建对应目录
+root@ubuntu:~/package# mkdir -p /home/casa/package/linux-libc-dev_5.4.0-96.109
+root@ubuntu:~/package# cd /var/cache/apt/archives
+root@ubuntu:/var/cache/apt/archives# ll |grep linux-libc-dev
+-rw-r--r-- 1 root root   1114192 Jan 18 18:37 linux-libc-dev_5.4.0-96.109_amd64.deb
+root@ubuntu:/var/cache/apt/archives# cp linux-libc-dev_5.4.0-96.109_amd64.deb /home/casa/package/linux-libc-dev_5.4.0-96.109/
+~~~
+
+3.修改目录权限
+
+~~~shell
+root@ubuntu:/var/cache/apt/archives# chmod -R 777 /home/casa/package/linux-libc-dev_5.4.0-96.109/
+~~~
+
+4.建立deb包的依赖关系
+
+~~~shell
+root@ubuntu:/var/cache/apt/archives# dpkg-scanpackages /home/casa/package/linux-libc-dev_5.4.0-96.109/ /dev/null |gzip >/home/casa/package/linux-libc-dev_5.4.0-96.109/Packages.gz
+dpkg-scanpackages: warning: Packages in archive but missing from override file:
+dpkg-scanpackages: warning:   linux-libc-dev
+dpkg-scanpackages: info: Wrote 1 entries to output Packages file.
+~~~
+
+5.打包成压缩包
+
+~~~shell
+root@ubuntu:/var/cache/apt/archives# cd /home/casa/package/
+root@ubuntu:~/package# tar zcvf linux-libc-dev_5.4.0-96.109.tar.gz linux-libc-dev_5.4.0-96.109/
+linux-libc-dev_5.4.0-96.109/
+linux-libc-dev_5.4.0-96.109/linux-libc-dev_5.4.0-96.109_amd64.deb
+linux-libc-dev_5.4.0-96.109/Packages.gz
+~~~
+
+到这一步，离线安装包已经制作完成。
+
+------
+
+#### 7.在ubuntu16中安装python3.8：
+
+自带python2.7和python3.5，ubuntu16的源没有3.8的python
+
+1.执行"whereis python"查看当前安装的python
+
+~~~shell
+[root@root ~]# whereis python
+python: /usr/bin/python2.7 /usr/bin/python /usr/lib/python2.7 /usr/lib64/python2.7 /etc/python /usr/include/python2.7 /usr/share/man/man1/python.1.gz
+~~~
+
+2.配置依赖环境，如果不进行这步可能会出现一些问题
+
+~~~shell
+sudo apt-get install zlib1g-dev libbz2-dev libssl-dev libncurses5-dev libsqlite3-dev
+~~~
+
+3.去官网下载[Python-3.8.1.tar.xz](https://www.python.org/ftp/python/3.8.1)
+
+~~~shell
+wget https://www.python.org/ftp/python/3.8.1/Python-3.8.1.tar.xz
+# 如果下载失败
+　　1.将服务器DNS改成 8.8.8.8
+   2.将源改为国内源
+~~~
+
+4.解压下载的包
+
+~~~shell
+tar -xvJf  Python-3.8.1.tar.xz
+cd Python-3.8.1/
+~~~
+
+4.安装依赖(非必要，可跳过此步骤，如在5步出错在执行本步骤)
+
+~~~shell
+sudo apt-get install python-dev
+sudo apt-get install libffi-dev
+sudo apt-get install libssl-dev
+sudo apt-get install -y make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev
+~~~
+
+5.执行安装
+
+~~~shell
+./configure prefix=/usr/local/python3
+make && make install
+~~~
+
+6.修改软连接（配置全局变量）
+
+~~~shell
+#将原来的链接备份
+mv /usr/bin/python /usr/bin/python.bak
+ln -s /usr/local/python3/bin/python3 /usr/bin/python
+#测试是否安装成功了
+python -V
+~~~
+
+7.安装/升级pip
+
+到官网获取对应python版本的get-pip.py
+
+~~~shell
+python get-pip.py
+~~~
+
+建立软连接：
+
+~~~shell
+ln -s /usr/local/python3/bin/pip3.8 /usr/local/bin/pip
+~~~
+
+------
+
+#### 4.ubuntu20 开放root用户使用密码进行ssh远程登录
+
+1. 设置root密码
+
+执行命令后，依次输入当前登录用户密码，要设置的root密码，确认root密码
+
+```undefined
+sudo passwd root
+```
+
+2. 修改[ssh](https://so.csdn.net/so/search?q=ssh&spm=1001.2101.3001.7020)配置文件
+
+如果没有安装ssh-server，执行安装命令，已经安装的跳过即可
+
+```vbscript
+sudo apt install openssh-server
+```
+
+修改配置文件
+
+```bash
+sudo vim /etc/ssh/sshd_config
+```
+
+在vim中搜索定位PermitRootLogin，可直接查找：
+
+```undefined
+/PermitRootLogin
+```
+
+> 修改以下配置：
+> 33 #LoginGraceTime 2m
+> 34 #PermitRootLogin prohibit-password
+>
+> #prohibit-password 是不可以使用密码登录
+>
+> 35 #StrictModes yes
+> 36 #MaxAuthTries 6
+> 37 #MaxSessions 10
+
+修改为：
+
+```bash
+ LoginGraceTime 2m
+ PermitRootLogin yes
+ StrictModes yes
+ #MaxAuthTries 6
+ #MaxSessions 10
+
+```
+
+3. 重启ssh，使配置生效
+
+```undefined
+sudo service ssh restart
+```
+
+------
+
+
+
 ## Mysql or Mariadb
 
 #### 1.mysqlbinlog
