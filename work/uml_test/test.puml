@@ -1,0 +1,26 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+autonumber
+==Initial Inform==
+5G_eFemto -> Serving_HeMS: Inform ...
+Serving_HeMS -> 5G_eFemto: InformResponse
+5G_eFemto -> Serving_HeMS: Empty HTTP POST
+==Initial Parameter Provisioning==
+
+note over Serving_HeMS: todo
+Serving_HeMS -> 5G_eFemto: GetParameterValues(Init 4G&5G Parameters=REM List,Allowed Operating Channels,RF Parameters,Cell IDs,TACs,PLMNIDs...)
+5G_eFemto -> Serving_HeMS: GetParameterValuesResponse
+alt#Gold #LightBlue Initial 4G&5G Parameters Changed
+Serving_HeMS -> 5G_eFemto:SetParameterValues(5GNR Neighbour List,4G REM List,Allowed Operating Channels4G,Allowed Operating Channels5G,Diff Init 4G&5G Params...)
+5G_eFemto -> Serving_HeMS: SetParameterValuesResponse
+end
+Serving_HeMS -> 5G_eFemto: HTTP 204 (No Content)
+5G_eFemto -> Serving_HeMS: Close TCP Connection
+==REM,TPM & Value Change==
+5G_eFemto -> 5G_eFemto: REM scan over the provisioned REM frequencies,5G Cell PCI Auto-Configuration using the 5GNR Neighbour List
+5G_eFemto -> 5G_eFemto: provisioningCode = "INIT"
+5G_eFemto -> Serving_HeMS: Inform(4 Value Change,REM NRT,EARFCN DL,DLBandwidth 4G,NR-ARFFCN DL,DLBandwidth 5G,provisioningCode = "INIT",5G Cell PCI...)
+Serving_HeMS -> 5G_eFemto: InformResponse
+5G_eFemto -> Serving_HeMS: Empty HTTP POST
+@enduml
